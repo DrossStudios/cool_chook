@@ -36,7 +36,7 @@ class PWM_Dev():
 	def __init__(self, pin, temp_on, temp_off, seas_on, seas_off):
 		self.pin_id = PWM(Pin(pin))
 		self.pin_id.freq(5000)
-		self.pin_id.duty_u16(32767)
+		self.pin_id.duty_u16(32767) # optimization: this no. is 50% of 65535; recalculate for 33% and test
 		self.fan_max = temp_on
 		self.fan_off = temp_off
 		self.season_on = seas_on
@@ -48,7 +48,7 @@ class PWM_Dev():
 			self.pin_id.duty_u16(65535)
 			print(f">{self.fan_max}")
 		elif temp_check <= self.fan_off: 
-			self.pin_id.duty_u16(10)
+			self.pin_id.duty_u16(10) # see if this can't get reduced to 1 for "basically off"
 			print(f"<{self.fan_off}")
 		else: 
 			self.pin_id.duty_u16(32767)
@@ -59,7 +59,7 @@ class PWM_Dev():
 ### Initiate things
 log_file_name = ""
 Temp = Temps()
-Push = PWM_Dev(0,75,66,"Summer","Autumn")
+Push = PWM_Dev(0,75,66,"Summer","Autumn") # 75 and 66 are code-testing values, because they're easily reproducable in-lab
 
 
 while True:
