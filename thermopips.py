@@ -3,6 +3,22 @@
 from machine import ADC, Pin, PWM
 from time import time
 
+class Device_Info:
+	'''establish basic device info and settings'''
+	file_name = "coop.conf"
+	file_data = file_name.readlines()
+	dev_list = []
+	datable = False
+	for item in file_data:
+		if not datable and item[:5] = "-----": datable= True
+		elif datable and item[:6].lower() = "example": break
+		else:
+			#use .split(",") and .strip() to reduce each line down to a dict with the first object appended to dev_list and then used to call an instance of PEM_Dev, with all other objects passed as arguments to the Class
+	def poll_dev(self):
+		for dev in self.dev_list
+	
+# End of Class
+
 class Temps:
 	'''This class manages all temprature-themed variables, functions, formatting, etc.'''
 	
@@ -33,7 +49,7 @@ class Temps:
 
 class PWM_Dev():
 	'''Individual PWM device and it's trigger values'''
-	def __init__(self, pin, temp_on, temp_off, seas_on, seas_off):
+	def __init__(self, pin, temp_off, temp_on, seas_on, seas_off):
 		self.pin_id = PWM(Pin(pin))
 		self.pin_id.freq(5000)
 		self.pin_id.duty_u16(65535) # this number is the max value that can be used
@@ -59,7 +75,7 @@ class PWM_Dev():
 ### Initiate things
 log_file_name = ""
 Temp = Temps()
-Push = PWM_Dev(0,75,66,"Summer","Autumn") # 75 and 66 are code-testing values, because they're easily reproducable in-lab
+Push = PWM_Dev(0,66,75,"Summer","Autumn") # 75 and 66 are code-testing values, because they're easily reproducable in-lab
 
 
 while True:
