@@ -1,7 +1,7 @@
 # A draft attempt to use time-of-year, time-of-day, & tempurature to control lights (directly or via AC/DC relays) & fans
 
 from machine import ADC, Pin, PWM
-#from time import time
+from time import time
 
 ###### Borrowed Classes ######
 # These variables are defined for use in the DS1302 class. See in-Class comment for source data
@@ -243,17 +243,14 @@ class Device_Info:
 ### Initiate things
 log_file_name = ""
 Temp = Temps()
-Test = PWM_Dev(0,66,75,"Summer","Autumn",True) # 75 and 66 are code-testing values, because they're easily reproducable in-lab
+Test = PWM_Dev(0,66,75,"Summer","Autumn","24",True) # 75 and 66 are code-testing values, because they're easily reproducable in-lab
 Coop = Device_Info()
+# Comment-out these commands as-needed for proper configuration
+ds = DS1302(Pin(10),Pin(11),Pin(12))
+ds.date_time([2023, 9, 20, 3, 8, 43, 0]) # set datetime for 20 Sep 2023, 08:43:00. (A Wednesday, the 4th day of the week >> value 3)
+print(ds.date_time())
 
 #while True:
 #	Temp.fetch()
 #	Coop.Push.temp_ref(Temp.therm)
 #	Coop.poll_dev(Temp.therm)
-
-ds = DS1302(Pin(10),Pin(11),Pin(12))
-
-ds.date_time() # returns the current datetime.
-#ds.date_time([2023, 9, 19, 2, 22, 8, 0]) # set datetime for 19 Sep 2023, 22:08:00. (A Tuesday, the 3rd day of the week >> value 2)
-
-print(ds.date_time())
