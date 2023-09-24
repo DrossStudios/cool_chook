@@ -11,6 +11,8 @@ DS1302_REG_WP       = (0x8E)
 DS1302_REG_CTRL     = (0x90)
 DS1302_REG_RAM      = (0xC0)
 
+#NOTE:need to add a pair of functions Defining Day/Night…
+
 class DS1302:
     def __init__(self, clk, dio, cs):
         self.clk = clk
