@@ -133,10 +133,14 @@ class DS1302:
     def day_cycle(self, day=None):
         '''Custom function to help approximate a day/night cycle, rather than force users into calculating it themselves. 
         Location agnostic.'''
-        hour_of_day = self.hour(day)
+        hour_of_day = int(self.hour(day))
         if hour_of_day >= 6 and hour_of_day < 18: self.daytime = "day"
         else: self.daytime = "night"
 # End of Class
 
+### Test Lines ###
+# Initiate the test instance
 ds = DS1302(Pin(10),Pin(11),Pin(12))
 ds.date_time()
+
+# specific code-lines
