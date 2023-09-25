@@ -11,7 +11,7 @@ DS1302_REG_WP       = (0x8E)
 DS1302_REG_CTRL     = (0x90)
 DS1302_REG_RAM      = (0xC0)
 
-#NOTE:need to add a pair of functions Defining Day/Night…
+#NOTE:need to add a pair of functions Defining Day/Night...
 
 class DS1302:
     def __init__(self, clk, dio, cs):
@@ -113,7 +113,7 @@ class DS1302:
 
     def date_time(self, dat=None):
         if dat == None:
-            return [self.year(), self.month(), self.day(), self.weekday(), self.hour(), self.minute(), self.second()]
+            return [self.year(), self.month(), self.day(), self.weekday(), self.hour(), self.minute(), self.second(), self.day_cycle()] # added self.day_cycle (defined below)
         else:
             self.year(dat[0])
             self.month(dat[1])
@@ -122,12 +122,20 @@ class DS1302:
             self.hour(dat[4])
             self.minute(dat[5])
             self.second(dat[6])
+            self.day_cycle(dat[4]) # custom code added
 
     def ram(self, reg, dat=None):
         if dat == None:
             return self._get_reg(DS1302_REG_RAM + 1 + (reg % 31)*2)
         else:
             self._wr(DS1302_REG_RAM + (reg % 31)*2, dat)
+    
+    def day_cycle(self, day=None):
+        '''Custom function to help approximate a day/night cycle, rather than force users into calculating it themselves. 
+        Location agnostic.'''
+        hour_of_day = self.hour(day)
+        if hour_of_day >= 6 and hour_of_day < 18: self.daytime = "day"
+        else: self.daytime = "night"
 # End of Class
 
 ds = DS1302(Pin(10),Pin(11),Pin(12))

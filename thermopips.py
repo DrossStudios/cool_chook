@@ -105,6 +105,9 @@ class Device_Info:
 	# end of method
 
 	def poll_dev(self, therm_in):
+		# Add these steps:
+		#	Check wheather the self.RTC.day boolean equals dev(?).day_cycle or dev(?).day_cycle = "24"
+		#		if yes, validate settings according to therm_in
 		self.Push.temp_ref(therm_in)
 		self.Pull.temp_ref(therm_in)
 		self.Circulation.temp_ref(therm_in)
