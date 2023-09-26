@@ -5,18 +5,6 @@ from time import time
 from ds1302 import DS1302
 
 ###### Borrowed Classes ######
-# These variables are defined for use in the DS1302 class. See in-Class comment for source data
-DS1302_REG_SECOND = (0x80)
-DS1302_REG_MINUTE = (0x82)
-DS1302_REG_HOUR   = (0x84)
-DS1302_REG_DAY    = (0x86)
-DS1302_REG_MONTH  = (0x88)
-DS1302_REG_WEEKDAY= (0x8A)
-DS1302_REG_YEAR   = (0x8C)
-DS1302_REG_WP     = (0x8E)
-DS1302_REG_CTRL   = (0x90)
-DS1302_REG_RAM    = (0xC0)
-
 
 ###### Original Classes ######
 class Temps:
@@ -48,13 +36,26 @@ class Temps:
 ### End of Class ###
 
 class PWM_Dev():
-	'''Individual PWM device and it's trigger values'''
-	def __init__(self, pin, temp_off, temp_on, seas_on, seas_off, day_cyc, cool):
+	'''Individual PWM device and it's trigger values
+	<instance name> PWM_Dev(
+		pin, 
+			-integer value, 1-16(?) for GPIO pin number
+		temp_or_time,	
+			-string, being "heat", "cool", or "time"
+		_on_off,
+			-tuple, containing either a pair of:
+				integers (min and max temp readings)
+				-or-
+				a string "(day", "night", or "24") and an integer between 0 and 3600
+				NOTE: in a string/integrr pair, negative (-) numbers will be treated as 0, and numbers >3600 will be treated as 3600
+		seas_on,
+			-tuple, containing 2 strings from the following 5: "spring", "summer", "autumn", "winter", "all"
+		):'''
+	def __init__(self, pin, temp_or_time, _on_off, fade_rate, seas_on, seas_off, day_cyc, cool):
 		self.pin_id = PWM(Pin(pin))
-		self.pin_id.freq(5000)
+		self.pin_id.freq(5000) # fan-specific; may need 
 		self.pin_id.duty_u16(65535) # this number is the max value that can be used
-		self.fan_max = temp_on
-		self.fan_off = temp_off
+		self.dev_on = _on_off[0] # this value will be either a string
 		self.season_on = seas_on
 		self.season_off = seas_off
 		self.cooling = cool
