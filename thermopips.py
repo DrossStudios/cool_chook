@@ -9,7 +9,7 @@ from ds1302 import DS1302
 ###### Original Classes ######
 class Temps:
 	'''This class manages all temprature-themed variables, functions, formatting, etc.'''
-	
+
 	volt = ADC(4) 		# on-board thermal sensor
 	fahrenheit = True	# default setting - intended to be modified by a .conf file, if needed
 	therm = 0			# default value, updated repeatedly during execution
@@ -46,32 +46,55 @@ class PWM_Dev():
 			-tuple, containing either a pair of:
 				integers (min and max temp readings)
 				-or-
-				a string "(day", "night", or "24") and an integer between 0 and 3600
+				a string ("day", "night", or "24") and an integer between 0 and 3600
 				NOTE: in a string/integrr pair, negative (-) numbers will be treated as 0, and numbers >3600 will be treated as 3600
 		seas_on,
 			-tuple, containing 2 strings from the following 5: "spring", "summer", "autumn", "winter", "all"
+				NOTE: during __init__, if either value is "all", the 1st will be rewritten as "all" and the 2nd will be null-string("")
 		):'''
-	def __init__(self, pin, temp_or_time, _on_off, fade_rate, seas_on, seas_off, day_cyc, cool):
+	def __init__(self,
+			pin, 			# GPIO pin number
+			temp_or_time,	# String: "heat", "cool", or "time"
+			_on_off, 		# Tuple: 2 integers reresenting min/max temps; or a string ("day","night","24") and an integer (0-3600)
+			seas_on,		# Tuple: any 2 ("spring", "summer", "autumn", "winter", "all")
+			):
 		self.pin_id = PWM(Pin(pin))
 		self.pin_id.freq(5000) # fan-specific; may need 
 		self.pin_id.duty_u16(65535) # this number is the max value that can be used
-		self.dev_on = _on_off[0] # this value will be either a string
-		self.season_on = seas_on
-		self.season_off = seas_off
-		self.cooling = cool
-		self.day_cycle = day_cyc
+		self.trigger_mode = temp_or_time.lower()
+		if _on_off[0] > _on_off[1]: _on_off = (_on_off[1],_on_off[0])
+		if self.trigger_mode == "cool":
+			self.dev_on = _on_off[1]
+			self.dev_off = _on_off[0]
+		else:
+			self.dev_on = _on_off[0]
+			self.dev_off = _on_off[1]
+		if seas_on[0].lower() == "all" or seas_on[1].lower() == "all":
+			seas_on = ("all","")
+		self.season_on = seas_on[0]
+		self.season_off = seas_on[1]
 	# end of method
 
 	def temp_ref(self, temp_check):
-		if temp_check >= self.fan_max: 
+		if temp_check >= self.dev_on: 
 			self.pin_id.duty_u16(65535)
-			print(f">{self.fan_max}")
-		elif temp_check <= self.fan_off: 
+			print(f">{self.dev_on}") # test-line to be commented out after testing
+		elif temp_check <= self.dev_off: 
 			self.pin_id.duty_u16(1) 
-			print(f"<{self.fan_off}")
+			print(f"<{self.dev_off}") # test-line to be commented out after testing
 		else: 
 			self.pin_id.duty_u16(18878) # this number approximates 33% of 65535
-			print("ideal")
+			print("ideal") # test-line to be commented out after testing
+	# end of method
+
+	def time_ref(self, time_in):
+		return
+	# end of method
+
+	def dev_check(self, temp_check, time_in):
+		if self.trigger_mode == "time": self.time_ref(time_in)
+		else: self.temp_ref(temp_check)
+	# end of method
 
 ### End of Class ###
 
@@ -81,26 +104,26 @@ class Device_Info:
 		'''If any additional items need to be added, use the following format:
 
 		self.<device name> = PWM_Dev(
-
-			<An integer without quotes; the GPIO pin number used to control the device>,
-
-			<An integer without quotes; the lowest trigger-temprature>,
-
-			<An integer without quotes; the highest trigger-temprature>,
-
-			<A capitalized string in quotes, using one of the 5: All, Winter, Spring, Summer, Autumn. The start of the season 
-			activates the device>,
-
-			<A capitalized string in quotes, using one of the 5: All, Winter, Spring, Summer, Autumn. The start of the season 
-			deactivates the device>,
-
-			<A boolean value; True activates the device at the highest trigger-tempreature and deactivates it at the lowest 
-			trigger-temprature; False reverses this arrangement>
+			pin, 
+				-integer value, 1-16(?) for GPIO pin number
+			temp_or_time,	
+				-string, being "heat", "cool", or "time"
+			_on_off,
+				-tuple, containing either a pair of:
+					integers (min and max temp readings)
+					-or-
+					a string ("day", "night", or "24") and an integer between 0 and 3600
+					NOTE: in a string/integrr pair, negative (-) numbers will be treated as 0, and numbers >3600 will be treated as 3600
+			seas_on,
+				-tuple, containing 2 strings from the following 5: "spring", "summer", "autumn", "winter", "all"
+					NOTE: during __init__, if either value is "all", the 1st will be rewritten as "all" and the 2nd will be null-string("")
 		)'''
-		self.Push 		= PWM_Dev(0, 70, 90, "Spring", "Autumn", "24", True)
-		self.Pull 		= PWM_Dev(2, 70, 90, "Spring", "Autumn", "24", True)
-		self.Circulation= PWM_Dev(4, 50, 80, "Autumn", "Spring", "24", False)
-		self.Heat 		= PWM_Dev(6, 35, 35, "Autumn", "Spring", "24", False)
+		self.Push 		= PWM_Dev(0, "cool", (70, 90), ("all", ""))
+		self.Pull 		= PWM_Dev(2, "cool", (70, 90), ("all", ""))
+		self.Circulation= PWM_Dev(4, "heat", (50, 80), ("all", ""))
+		self.Heat 		= PWM_Dev(6, "heat", (35, 35), ("all", ""))
+		self.Tan		= PWM_Dev(8, "time", ("day", 1800), ("summer", "autumn"))
+		self.Light		= PWM_Dev(25, "time", ("day", 1800), ("all", ""))
 		self.RTC 		= DS1302(Pin(10),Pin(11),Pin(12))
 		self.RTC.start()
 	# end of method
@@ -120,7 +143,9 @@ class Device_Info:
 ### Initiate things
 log_file_name = ""
 Temp = Temps()
-Test = PWM_Dev(0,66,75,"Summer","Autumn","24",True) # 75 and 66 are code-testing values, because they're easily reproducable in-lab
+Test_heat = PWM_Dev(0,"heat", (66,75), ("Summer","Autumn")) # 75 and 66 are code-testing values, because they're easily reproducable in-lab
+Test_cool = PWM_Dev(0,"cool", (66,75), ("Summer","Autumn"))
+Test_time = PWM_Dev(0,"time", ("day",30), ("Summer","Autumn"))
 Coop = Device_Info()
 # Comment-out these commands as-needed for proper configuration
 #Coop.RTC.date_time([2023, 9, 20, 3, 9, 0, 0]) # set datetime for 20 Sep 2023, 09:00:00. (A Wednesday, the 4th day of the week >> value 3)
