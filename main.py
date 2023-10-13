@@ -106,11 +106,13 @@ class PWM_Dev():
 				# progressively adjust .duty_u16() from 1 to 65535 in ratios of seconds from first all-true instance until .dev_off's
 				# value in seconds has passed.
 				# NOTE: calculations *must* allow for an immediate jump from 1 to 65535 if the fade rate (.def_off) is 0
+				
 				pass
 			elif self.dev_on == time_in.day_cycle and self.fade_count > self.dev_off: # The time is "now" and the fade is done
 				self.pin_id.duty_u16(65535)
 			elif self.dev_on != time_in.day_cycle and self.fade_count > 0: # The time is "not now" but the fade needs to process
 				# exact reverse-process of elif-statement above, with same NOTE requirement
+				
 				pass
 			else: self.pin_id.duty_u16(1)
 		else: self.pin_id.duty_u16(1)
