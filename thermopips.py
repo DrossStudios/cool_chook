@@ -59,7 +59,7 @@ class PWM_Dev():
 			seas_on,		# Tuple: any 2 ("spring", "summer", "autumn", "winter", "all")
 			):
 		self.pin_id = PWM(Pin(pin))
-		self.pin_id.freq(5000) # fan-specific; may need 
+		self.pin_id.freq(300) # fan-specific; may need adjustment for other devices.
 		self.pin_id.duty_u16(65535) # this number is the max value that can be used
 		self.trigger_mode = temp_or_time.lower()
 		if _on_off[0] > _on_off[1]: _on_off = (_on_off[1],_on_off[0])
@@ -124,7 +124,7 @@ class Device_Info:
 		self.Heat 		= PWM_Dev(6, "heat", (35, 35), ("all", ""))
 		self.Tan		= PWM_Dev(8, "time", ("day", 1800), ("summer", "autumn"))
 		self.Light		= PWM_Dev(25, "time", ("day", 1800), ("all", ""))
-		self.RTC 		= DS1302(Pin(10),Pin(11),Pin(12))
+		self.RTC 		= DS1302(Pin(11),Pin(12),Pin(13))
 		self.RTC.start()
 	# end of method
 
