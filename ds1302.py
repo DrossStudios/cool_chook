@@ -122,7 +122,9 @@ class DS1302:
             self.hour(dat[4])
             self.minute(dat[5])
             self.second(dat[6])
-            self.day_cycle(dat[4]) # custom code added
+            # custom code added
+            self.day_cycle(dat[4])  # use hours to hammer-meets-brick determine "daytime" vs "nighttime"
+            self.season(dat[1])     # use month to hammer-meets-brick determine "spring," "summer," "autumn," or "winter"
 
     def ram(self, reg, dat=None):
         if dat == None:
@@ -130,12 +132,19 @@ class DS1302:
         else:
             self._wr(DS1302_REG_RAM + (reg % 31)*2, dat)
     
+    ### Custom Functions
     def day_cycle(self, day=None):
         '''Custom function to help approximate a day/night cycle, rather than force users into calculating it themselves. 
         Location agnostic.'''
         hour_of_day = int(self.hour(day))
         if hour_of_day >= 6 and hour_of_day < 18: self.daytime = "day"
         else: self.daytime = "night"
+    # end of method
+
+    def season(self, month=None):
+        '''Custom function to help approximate a 4-seasons cycle, rather than force users into calculating it themselves. 
+        Location agnostic.'''
+        
 # End of Class
 
 ### Test Lines ###
