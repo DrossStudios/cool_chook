@@ -64,8 +64,9 @@ class PWM_Dev():
 		if self.trigger_mode == "cool":
 			self.dev_on = _on_off[1]
 			self.dev_off = _on_off[0]
-		else: # the same .dev_on and .dev_off assignments would be used for both "time" and "heat"
+		elif self.trigger_mode == "time":
 			self.dev_on = _on_off[0]
+			# calculate the fade-finish times as 0600hrs or 1800hrs + _on_off[1] -- hour % 12 == 6 then min >= (_on_off[1] // 60) then second >= _on_off[1] % 60
 			self.dev_off = _on_off[1]
 		if seas_on[0].lower() == "all" or seas_on[1].lower() == "all":
 			seas_on = ("all","")
