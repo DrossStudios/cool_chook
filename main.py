@@ -181,7 +181,7 @@ Coop = Device_Info()
 Coop.RTC.date_time([2023, 10, 15, 1, 11, 15, 0]) # set datetime for 15 Oct 2023, 11:15:00. (A Sunday, the 1st day of the week >> value 3)
 
 ### Test-Code lines
-print(Coop.RTC.date_time())
+
 #while True:
 #	Temp.fetch()
 #	Coop.Push.dev_check(Temp.therm)
