@@ -18,7 +18,8 @@ class Temps:
 		else:
 			# temp = 32+(1.8*(27-(volts-0.706)/0.00172))
 			self.therm = 32+(48.6-1.8*(volts-0.706)/0.00172)
-		print(self.therm)
+		self.format()
+		print(self.easyread) # test line; comment-out before final production-release
 		return
 	# end of method
 	
@@ -64,10 +65,14 @@ class PWM_Dev():
 			self.dev_on = _on_off[1]
 			self.dev_off = _on_off[0]
 		elif self.trigger_mode == "time":
-			self.dev_on = _on_off[0]
+			pass
+			#self.dev_on = _on_off[0]
 			# calculate the fade-finish times as 0600hrs or 1800hrs + _on_off[1] -- hour % 12 == 6 then min >= (_on_off[1] // 60) then second >= _on_off[1] % 60
+			#self.dev_off = _on_off[1]
+			#self.fade_end = f"{_on_off[1]//60}:{_on_off[1]%60}"
+		elif self.trigger_mode == "heat":
+			self.dev_on = _on_off[0]
 			self.dev_off = _on_off[1]
-			self.fade_end = f"{_on_off[1]//60}:{_on_off[1]%60}"
 		if seas_on[0].lower() == "all" or seas_on[1].lower() == "all":
 			seas_on = ("all","")
 		self.season_on = seas_on[0]
@@ -90,33 +95,34 @@ class PWM_Dev():
 	def heat_ref(self, temp_check):
 		if temp_check <= self.dev_on: 
 			self.pin_id.duty_u16(65535)
-			print(f">{self.dev_on}") # test-line to be commented out after testing
+			print(f"<{self.dev_on}") # test-line to be commented out after testing
 		elif temp_check >= self.dev_off: 
 			self.pin_id.duty_u16(1) 
-			print(f"<{self.dev_off}") # test-line to be commented out after testing
+			print(f">{self.dev_off}") # test-line to be commented out after testing
 		else: 
 			self.pin_id.duty_u16(18878) # this number approximates 33% of 65535
 			print("ideal") # test-line to be commented out after testing
 	# end of method
 
 	def time_ref(self, time_in):
-		if self.season_on == time_in.season or self.season_on == "all":
-			if self.dev_on == "24": # all-day, everyday during this season
-				self.pin_id.duty_u16(65535)
-			elif self.dev_on == time_in.day_cycle and self.fade_count <= self.dev_off: # The time is "now" but the fade is still progressing
-				# progressively adjust .duty_u16() from 1 to 65535 in ratios of seconds from first all-true instance until .dev_off's
-				# value in seconds has passed.
-				# NOTE: calculations *must* allow for an immediate jump from 1 to 65535 if the fade rate (.def_off) is 0
-				
-				pass
-			elif self.dev_on == time_in.day_cycle and self.fade_count > self.dev_off: # The time is "now" and the fade is done
-				self.pin_id.duty_u16(65535)
-			elif self.dev_on != time_in.day_cycle and self.fade_count > 0: # The time is "not now" but the fade needs to process
-				# exact reverse-process of elif-statement above, with same NOTE requirement
-				
-				pass
-			else: self.pin_id.duty_u16(1)
-		else: self.pin_id.duty_u16(1)
+		return
+		#if self.season_on == time_in.season or self.season_on == "all":
+		#	if self.dev_on == "24": # all-day, everyday during this season
+		#		self.pin_id.duty_u16(65535)
+		#	elif self.dev_on == time_in.day_cycle and self.fade_count <= self.dev_off: # The time is "now" but the fade is still progressing
+		#		# progressively adjust .duty_u16() from 1 to 65535 in ratios of seconds from first all-true instance until .dev_off's
+		#		# value in seconds has passed.
+		#		# NOTE: calculations *must* allow for an immediate jump from 1 to 65535 if the fade rate (.def_off) is 0
+		#		
+		#		pass
+		#	elif self.dev_on == time_in.day_cycle and self.fade_count > self.dev_off: # The time is "now" and the fade is done
+		#		self.pin_id.duty_u16(65535)
+		#	elif self.dev_on != time_in.day_cycle and self.fade_count > 0: # The time is "not now" but the fade needs to process
+		#		# exact reverse-process of elif-statement above, with same NOTE requirement
+		#		
+		#		pass
+		#	else: self.pin_id.duty_u16(1)
+		#else: self.pin_id.duty_u16(1)
 	# end of method
 
 	def dev_check(self, temp_check, time_in):
@@ -173,16 +179,15 @@ class Device_Info:
 ### Initiate things
 log_file_name = ""
 Temp = Temps()
-Test_heat = PWM_Dev(0,"heat", (66,75), ("Summer","Autumn")) # 75 and 66 are code-testing values, because they're easily reproducable in-lab
-Test_cool = PWM_Dev(0,"cool", (66,75), ("Summer","Autumn"))
-Test_time = PWM_Dev(0,"time", ("day",30), ("Summer","Autumn"))
 Coop = Device_Info()
 # Comment-out these commands as-needed for proper configuration
-Coop.RTC.date_time([2023, 10, 15, 1, 11, 15, 0]) # set datetime for 15 Oct 2023, 11:15:00. (A Sunday, the 1st day of the week >> value 3)
+#Coop.RTC.date_time([2023, 10, 15, 1, 11, 15, 0]) # set datetime for 15 Oct 2023, 11:15:00. (A Sunday, the 1st day of the week >> value 3)
 
 ### Test-Code lines
+#Test_heat = PWM_Dev(0,"heat", (66,75), ("Summer","Autumn")) # 75 and 66 are code-testing values, because they're easily reproducable in-lab
+#Test_cool = PWM_Dev(0,"cool", (66,75), ("Summer","Autumn"))
+#Test_time = PWM_Dev(0,"time", ("day",30), ("Summer","Autumn"))
 
-#while True:
-#	Temp.fetch()
-#	Coop.Push.dev_check(Temp.therm)
-#	Coop.poll_dev(Temp.therm)
+while True:
+	Temp.fetch()
+	Coop.poll_dev(Temp.therm, 0)
