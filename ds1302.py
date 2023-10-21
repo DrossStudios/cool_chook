@@ -193,10 +193,11 @@ class DS1302:
 print(DS1302_REG_SECOND)
 ds = DS1302(Pin(12),Pin(13),Pin(14))
 print(DS1302_REG_SECOND)
-ds.date_time([2002, 1, 1, 1, 0, 0, 40]) # [year, month, date, day-of-week, hour, minute, second]
+ds.date_time([2002, 1, 1, 1, 0, 0, 55]) # [year, month, date, day-of-week, hour, minute, second]
 print(DS1302_REG_SECOND)
 
 # specific code-lines
+print(ds.date_time())
 print(ds.second())
 #for i in range(60):
 #    print(ds.second())
