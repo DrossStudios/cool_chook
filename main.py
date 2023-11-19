@@ -154,8 +154,8 @@ class Device_Info:
 		self.Circulation= PWM_Dev(4, "heat", (50, 80), ("all", "")) 				# P-2
 		self.Push 		= PWM_Dev(6, "cool", (70, 90), ("all", "")) 				# P-3
 		self.Pull 		= PWM_Dev(8, "cool", (70, 90), ("all", "")) 				# P-4
-		self.Heat 		= PWM_Dev(10, "heat", (35, 35), ("all", "")) 				# P-5
-		self.DeIce		= PWM_Dev(12, "heat", (40, 40), ("all", "")) 				# P-6
+		self.Heat 		= PWM_Dev(10, "heat", (25, 25), ("all", "")) 				# P-5
+		self.DeIce		= PWM_Dev(12, "heat", (35, 35), ("all", "")) 				# P-6
 		self.RTCmod 	= RTC()
 	# end of method
 
