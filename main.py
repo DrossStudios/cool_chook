@@ -287,7 +287,7 @@ class Logger:
 
 	def record_change(self, msg_in, time_in):
 		time_in = self.nice_time(time_in)
-		with open("/log/state_changes.log") as update:
+		with open("/log/state_changes.log", "a") as update:
 			print(f"{time_in}: {msg_in}", file=update)
 	# end of method
 
