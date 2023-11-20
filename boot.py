@@ -67,7 +67,21 @@ try:
         check_errlog.close()
     # end of phase 3
 
-    ### Phase 4: make sure the last_time.txt file exists; if not, create it
+    ### Phase 4: make sure the state-change log exists
+    "/log/state_changes.log"
+    try:
+        check_errlog = open("/log/state_changes.log", "r")
+    except OSError as errmsg:
+        boot_build("state-change log missing")
+        boot_errors(errmsg, f"'/log/state_changes.log' missing\nCreating it...")
+        with open("/log/state_changes.log", "w") as fixing:
+            print(f"Log of changes to device states (turning on/off or idle):\n", file=fixing)
+    else: 
+        boot_build("state-change log present")
+        check_errlog.close()
+    # end of phase 4
+
+    ### Phase 5: make sure the last_time.txt file exists; if not, create it
     try:
         check_last = open("last_time.txt", "r")
     except Exception as errmsg:
@@ -78,9 +92,9 @@ try:
     else: 
         boot_build("time back-up present")
         check_last.close()
-    # end of phase 4
+    # end of phase 5
 
-    ### Phase 5: make sure the ds1302.py module exists:
+    ### Phase 6: make sure the ds1302.py module exists:
     try:
         from ds1302 import DS1302
     except ImportError as errmsg:
@@ -130,6 +144,8 @@ try:
                 # if ds.year() != rtc.datetime()[0], use an exception to assign ds.date_time() values to rtc.datetime(<tuple>)
                 boot_build("rtc.datetime's year value is default; using the values on the ds1302 chip to update it")
                 rtc.datetime(ds.date_time())
+    # end of phase 6
+    
 except Exception as errmsg:
     print(errmsg)
     with open("total_boot.fail", "w") as total_fail:
