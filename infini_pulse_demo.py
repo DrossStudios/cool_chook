@@ -1,8 +1,7 @@
-from machine import Pin, PWM
-from ds1302 import *
-from utime import *
+from time import *
+from machine import ADC, Pin, PWM
 
-led = PWM(Pin(0))
+led = PWM(Pin(25)) # use the on-board LED to demonstrate the PWM pulse
 led.freq(1000)
 led.duty_u16(1)
 

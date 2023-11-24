@@ -17,7 +17,8 @@ class Temps:
 		else:
 			# temp = 32+(1.8*(27-(volts-0.706)/0.00172))
 			self.therm = 32+(48.6-1.8*(volts-0.706)/0.00172)
-		#print(self.therm)
+		self.format()
+		print(self.easyread) # test line; comment-out before final production-release
 		return
 	# end of method
 	
@@ -63,8 +64,13 @@ class PWM_Dev():
 			self.dev_on = _on_off[1]
 			self.dev_off = _on_off[0]
 		elif self.trigger_mode == "time":
-			self.dev_on = _on_off[0]
+			pass
+			#self.dev_on = _on_off[0]
 			# calculate the fade-finish times as 0600hrs or 1800hrs + _on_off[1] -- hour % 12 == 6 then min >= (_on_off[1] // 60) then second >= _on_off[1] % 60
+			#self.dev_off = _on_off[1]
+			#self.fade_end = f"{_on_off[1]//60}:{_on_off[1]%60}"
+		elif self.trigger_mode == "heat":
+			self.dev_on = _on_off[0]
 			self.dev_off = _on_off[1]
 			self.fade_end = f"{_on_off[1]//60}:{_on_off[1]%60}"
 		else: # heat
