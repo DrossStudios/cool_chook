@@ -191,13 +191,14 @@ class DS1302:
 ### Test Lines ###
 # Initiate the test instance
 print(DS1302_REG_SECOND)
-ds = DS1302(Pin(13),Pin(14),Pin(15))
+ds = DS1302(Pin(12),Pin(13),Pin(14))
 print(DS1302_REG_SECOND)
-ds.date_time([2023, 10, 15, 1, 11, 16, 0, 0]) # [year, month, date, day-of-week, hour, minute, second]
+ds.date_time([2002, 1, 1, 1, 0, 0, 55]) # [year, month, date, day-of-week, hour, minute, second]
 print(DS1302_REG_SECOND)
 
 # specific code-lines
-print()
-for i in range(60):
-    print(ds.second())
+print(ds.date_time())
+print(ds.second())
+#for i in range(60):
+#    print(ds.second())
     
