@@ -108,8 +108,8 @@ class PWM_Dev():
 			self.pin_id.duty_u16(18878) # this number approximates 33% of 65535
 			#print("ideal") # test-line to be commented out after testing
 	# end of method
-    
-    def season(self, time_in):
+
+	def season(self, time_in):
 		if time_in[1] >= 3 and time_in[1] < 6: return "spring"
 		elif time_in[1] >= 6 and time_in[1] < 9: return "summer"
 		elif time_in[1] >= 9 and time_in[1] < 12 : return "autumn"
