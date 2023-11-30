@@ -30,9 +30,18 @@ try:
         boot_build("'boot_log.txt' didn't exist yet")
     
         # create the log file and provide it's initial data
-        bootlog = open("/log/boot_log.txt", "w")
-        print(f"Cool Chooks Climate Controller\nBoot Log\n", file=bootlog)
-        bootlog.close()
+        while True:
+            try:
+                bootlog = open("/log/boot_log.txt", "w")
+                print(f"Cool Chooks Climate Controller\nBoot Log\n", file=bootlog)
+                bootlog.close()
+            except OSError as add_error:
+                boot_build(f"{add_error}: '/log' directory probably didn't exist yet; creating...")
+                from os import mkdir
+                mkdir("/log")
+            else: 
+                boot_build("'/log/boot_log.txt' now exists")
+                break
     except Exception as add_error:
         # unknown error reporting
         boot_build(f"Unexpected Error:\n{add_error}\n")
