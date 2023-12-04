@@ -61,18 +61,19 @@ class PWM_Dev():
 		self.fade_end = "0:0"
 		if type(_on_off[0]) == int and _on_off[0] > _on_off[1]: _on_off = (_on_off[1],_on_off[0])
 		if self.trigger_mode == "cool":
-			self.dev_on = _on_off[1]
-			self.dev_off = _on_off[0]
+			self.dev_on = _on_off[1] # high value means high temp, thus "turn on cooling fans"
+			self.dev_off = _on_off[0] # low temp means "turn off cooling"
+			# side note: the gap between low and high 
 		elif self.trigger_mode == "time":
 			pass
-			#self.dev_on = _on_off[0]
-			# calculate the fade-finish times as 0600hrs or 1800hrs + _on_off[1] -- hour % 12 == 6 then min >= (_on_off[1] // 60) then second >= _on_off[1] % 60
-			#self.dev_off = _on_off[1]
-			#self.fade_end = f"{_on_off[1]//60}:{_on_off[1]%60}"
-		elif self.trigger_mode == "heat":
-			self.dev_on = _on_off[0]
-			self.dev_off = _on_off[1]
-			self.fade_end = f"{_on_off[1]//60}:{_on_off[1]%60}"
+			self.dev_on = _on_off[0] # has a string-value of "day", "night", or "24"
+			if _on_off[1] > 0:
+				self.dev_off = ((6+_on_off[1])//3600, _on_off[1]//60, _on_off[1]%60) # hours, minutes, seconds
+			else: 
+				self.dev_off = (0, 0, 0) # i.e. "immediately, no fade"
+		elif self.trigger_mode.lower() == "heat":
+			self.dev_on = _on_off[0] # low value means low temp, thus "turn on heat relay"
+			self.dev_off = _on_off[1] # high temps
 		else: # heat
 			self.dev_on = _on_off[0]
 			self.dev_off = _on_off[1]
@@ -83,7 +84,7 @@ class PWM_Dev():
 		self.fade_count = 0
 	# end of method
 
-	def cool_ref(self, temp_check):
+	def cool_ref(self, temp_check, log):
 		'''Compare temp sensor to settings, determine whether to turn on/down/off/up associated cooling device.'''
 		if temp_check >= self.dev_on: 
 			self.pin_id.duty_u16(65535)
@@ -96,7 +97,7 @@ class PWM_Dev():
 			#print("ideal") # test-line to be commented out after testing
 	# end of method
 
-	def heat_ref(self, temp_check):
+	def heat_ref(self, temp_check, log):
 		'''Compare temp sensor to settings, determine whether to turn on/down/off/up associated heating device.'''
 		if temp_check <= self.dev_on: 
 			self.pin_id.duty_u16(65535)
@@ -120,33 +121,40 @@ class PWM_Dev():
 		if time_in[4] >= 6 and time_in[4] < 18: return "day"
 		else: return "night"
 
-	def time_ref(self, time_in):
+	def time_ref(self, time_in, log):
 		'''Compare RTC value(s) to settings, determine whether the associated device needs its fade phase to be advanced, if said phase is complete, or if said phase needs to be triggered.'''
-		if self.season_on == self.season(time_in) or self.season_on == "all":
-			if self.dev_on == "24": # all-day, everyday during this season
-				self.pin_id.duty_u16(65535)
-			elif self.dev_on == self.day_cycle(time_in) and self.fade_count <= self.dev_off: # The time is "now" but the fade is still progressing
-				# progressively adjust .duty_u16() from 1 to 65535 in ratios of seconds from first all-true instance until .dev_off's
-				# value in seconds has passed.
-				# NOTE: calculations *must* allow for an immediate jump from 1 to 65535 if the fade rate (.def_off) is 0
-				
-				pass
-			elif self.dev_on == self.day_cycle(time_in) and self.fade_count > self.dev_off: # The time is "now" and the fade is done
-				self.pin_id.duty_u16(65535)
-			elif self.dev_on != self.day_cycle(time_in) and self.fade_count > 0: # The time is "not now" but the fade needs to process
-				# exact reverse-process of elif-statement above, with same NOTE requirement
-				
-				pass
-			else: self.pin_id.duty_u16(1)
-		else: self.pin_id.duty_u16(1)
+		if self.trigger_mode == "DAY" or self.trigger_mode == "NIGHT": # device is currently fading in/out
+			if self.dev_off[0] == time_in[4]: # has the fade-in/-out reached the goal hour?
+				if self.dev_off[1] == time_in[5]: # has the fade-in/-out reached the goal minute?
+					if self.dev_off[2] == time_in[6]: # has the fade-in/-out reached the goal second?
+						if self.trigger_mode.lower() == self.day_cycle(time_in): # the trigger_mode matches the current daytime phase
+							self.pin_id.duty_u16(65535) # the device is now fully "on"
+						else:
+							self.pin_id.duty_u16(1) # the device is fully "off"
+						self.trigger_mode = self.trigger_mode.lower()
+			now_secs = time_in[4]*3600 + time_in[5]*60 + time_in[6] # value ranges are 21600-28799 or 64800-71999
+			if now_secs >= 64800: now_secs -= 43200 # render the number of seconds as from 12am (0600:00 - 0759:59)
+			goal_secs = self.dev_off[0]*3600 + self.dev_off[0]*60 + self.dev_off[0] # value range is between 21600-28799
+			fade_progress = (goal_secs - now_secs) / goal_secs # take the diff between goal & now; calc the decimal percentage of progress
+			if self.trigger_mode.lower() == self.day_cycle(time_in): # is the daytime cycle in sync with the device's settings?
+				# if yes, increase .duty_u16 closer to 65535
+				self.pin_id.duty_u16(65535 - int(65535 * fade_progress))
+			else: # if not, decres .duty_u16 closer to 1
+				if int(65535 * fade_progress) > 0:
+					self.pin_id.duty_u16(int(65535 * fade_progress))
+				else:
+					self.pin_id.duty_u16(1)
+		elif self.trigger_mode == "day" or self.trigger_mode == "night": # device is not currently in fade-in/-out			
+			if time_in[4] == 6 or time_in[4] == 18:
+				self.trigger_mode = self.trigger_mode.upper()
 	# end of method
 
-	def dev_check(self, temp_check, time_in):
+	def dev_check(self, temp_check, time_in, log):
 		'''A uniform function that any device can be plugged into, and then use it's settings to determine which sub-function is needed to handle its resolution.'''
-		if self.trigger_mode == "time": self.time_ref(time_in)
-		elif self.trigger_mode == "heat": self.heat_ref(temp_check)
-		elif self.trigger_mode == "cool": self.cool_ref(temp_check)
-		else: LogMe.record_error(f"device-check failure:\n{self}", time_in)
+		if self.trigger_mode == "time": self.time_ref(time_in, log)
+		elif self.trigger_mode == "heat": self.heat_ref(temp_check, log)
+		elif self.trigger_mode == "cool": self.cool_ref(temp_check, log)
+		else: log.record_error(f"device-check failure:\n{self}", time_in)
 	# end of method
 ### End of Class ###
 
@@ -180,37 +188,16 @@ class Device_Info:
 		self.RTCmod 	= RTC()
 	# end of method
 
-	def poll_dev(self, therm_in, time_in):
+	def poll_dev(self, therm_in, time_in, log):
 		'''Polls all PWM-configured devices'''
-		self.Push.dev_check(therm_in, time_in)
-		self.Pull.dev_check(therm_in, time_in)
-		self.Circulation.dev_check(therm_in, time_in)
-		self.Heat.dev_check(therm_in, time_in)
-		self.DeIce.dev_check(therm_in, time_in)
-		self.Tan.dev_check(therm_in, time_in)
-		self.Light.dev_check(therm_in, time_in)
+		self.Push.dev_check(therm_in, time_in, log)
+		self.Pull.dev_check(therm_in, time_in, log)
+		self.Circulation.dev_check(therm_in, time_in, log)
+		self.Heat.dev_check(therm_in, time_in, log)
+		self.DeIce.dev_check(therm_in, time_in, log)
+		self.Tan.dev_check(therm_in, time_in, log)
+		self.Light.dev_check(therm_in, time_in, log)
 	# end of method
-
-	# Correlation of datetime() indexies and what they represent
-	# 0 year
-	# 1 month
-	# 2 date
-	# 3 day of the week (Monday is the 1st index, 0)
-	# 4 hour in 24hr cycle
-	# 5 minute
-	# 6 second
-	# 7 microsecond
-
-	def season(self, time_in):
-		if time_in[1] >= 3 and time_in[1] < 6: return "spring"
-		elif time_in[1] >= 6 and time_in[1] < 9: return "summer"
-		elif time_in[1] >= 9 and time_in[1] < 12 : return "autumn"
-		else: return "winter"
-	# end of method
-
-	def day_cycle(self, time_in):
-		if time_in[4] >= 6 and time_in[4] < 18: return "day"
-		else: return "night"
 ### End of Class ###
 
 class Logger:
@@ -327,3 +314,7 @@ class Logger:
 			print(f"{time_in}: {therm_in}", file=therm_out)
 	# end of method
 # end of class
+
+def manual():
+	'''A function for accessing and testing the various system components from the command-line of an attached computer
+	<documentation of commands subsequently available after initially running the function>'''
