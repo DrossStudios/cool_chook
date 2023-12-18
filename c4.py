@@ -4,7 +4,6 @@ from utime import sleep, sleep_us
 ###### Original Classes ######
 class Temps:
 	'''This class manages all temprature-themed variables, functions, formatting, etc.'''
-
 	volt = ADC(4) 		# on-board thermal sensor
 	fahrenheit = True	# default setting - intended to be modified by a .conf file, if needed
 	therm = 0			# default value, updated repeatedly during execution
@@ -46,7 +45,7 @@ class PWM_Dev():
 				NOTE: in a string/integrr pair, negative (-) numbers will be treated as 0, and numbers >3599 will be treated as 3599
 		seas_on,
 			-tuple, containing 2 strings from the following 5: "spring", "summer", "autumn", "winter", "all"
-				NOTE: during __init__, if either value is "all", the 1st will be rewritten as "all" and the 2nd will be null-string("")
+				NOTE: during __init__(), if either value is "all", the 1st will be rewritten as "all" and the 2nd will be null-string("")
 		):'''
 	def __init__(self,
 			pin, 			# GPIO pin number
@@ -118,35 +117,55 @@ class PWM_Dev():
 	# end of method
 
 	def day_cycle(self, time_in):
+		
+		# Test Line
+		print(f"time_in[hour]: {time_in[4]}\ndaytime? {(time_in[4] >= 6, time_in[4] < 18, time_in[4] >= 6 and time_in[4] < 18)}")
 		if time_in[4] >= 6 and time_in[4] < 18: return "day"
 		else: return "night"
+	# end of method
 
 	def time_ref(self, time_in, log):
 		'''Compare RTC value(s) to settings, determine whether the associated device needs its fade phase to be advanced, if said phase is complete, or if said phase needs to be triggered.'''
-		if self.trigger_mode == "DAY" or self.trigger_mode == "NIGHT": # device is currently fading in/out
-			if self.dev_off[0] == time_in[4]: # has the fade-in/-out reached the goal hour?
+		if self.dev_on == self.dev_on.upper(): # device is currently fading in/out
+			if time_in[4] in (self.dev_off[0]+6, self.dev_off[0]+18): # has the fade-in/-out reached the goal hour?
 				if self.dev_off[1] == time_in[5]: # has the fade-in/-out reached the goal minute?
 					if self.dev_off[2] == time_in[6]: # has the fade-in/-out reached the goal second?
-						if self.trigger_mode.lower() == self.day_cycle(time_in): # the trigger_mode matches the current daytime phase
+						if self.dev_on.lower() == self.day_cycle(time_in): # the trigger_mode matches the current daytime phase
 							self.pin_id.duty_u16(65535) # the device is now fully "on"
 						else:
 							self.pin_id.duty_u16(1) # the device is fully "off"
-						self.trigger_mode = self.trigger_mode.lower()
+						self.dev_on = self.dev_on.lower()
 			now_secs = time_in[4]*3600 + time_in[5]*60 + time_in[6] # value ranges are 21600-28799 or 64800-71999
 			if now_secs >= 64800: now_secs -= 43200 # render the number of seconds as from 12am (0600:00 - 0759:59)
-			goal_secs = self.dev_off[0]*3600 + self.dev_off[0]*60 + self.dev_off[0] # value range is between 21600-28799
-			fade_progress = (goal_secs - now_secs) / goal_secs # take the diff between goal & now; calc the decimal percentage of progress
-			if self.trigger_mode.lower() == self.day_cycle(time_in): # is the daytime cycle in sync with the device's settings?
+			change_secs = self.dev_off[0]*3600 + self.dev_off[1]*60 + self.dev_off[2]
+			goal_secs = change_secs + 21600 # value range is between 21600-28799
+			try: # take the diff between goal & now; calc the decimal percentage of progress
+				fade_progress = (goal_secs - now_secs) / change_secs
+			except:
+				fade_progress = 0
+
+			# Test Line
+			print(f"goal: {goal_secs}\t- now: {now_secs}\t- progress: {fade_progress*100}%")
+			print(f"Are dev_on ({self.dev_on.lower()}) and day_cycle ({self.day_cycle(time_in)}) equal? {self.dev_on.lower() == self.day_cycle(time_in)}")
+			
+			if self.dev_on.lower() == self.day_cycle(time_in): # is the daytime cycle in sync with the device's settings?
 				# if yes, increase .duty_u16 closer to 65535
 				self.pin_id.duty_u16(65535 - int(65535 * fade_progress))
-			else: # if not, decres .duty_u16 closer to 1
+			else: # if not, decrease .duty_u16 closer to 1
 				if int(65535 * fade_progress) > 0:
 					self.pin_id.duty_u16(int(65535 * fade_progress))
 				else:
 					self.pin_id.duty_u16(1)
-		elif self.trigger_mode == "day" or self.trigger_mode == "night": # device is not currently in fade-in/-out			
-			if time_in[4] == 6 or time_in[4] == 18:
-				self.trigger_mode = self.trigger_mode.upper()
+
+			# Test Line
+			print(self.pin_id.duty_u16())
+
+		elif self.dev_on == self.dev_on.lower(): # device is not currently in fade-in/-out			
+			
+			# Test Line
+			print("Made it to mode re-definition")
+			
+			self.dev_on = self.dev_on.upper()
 	# end of method
 
 	def dev_check(self, temp_check, time_in, log):
@@ -176,7 +195,7 @@ class Device_Info:
 					NOTE: in a string/integrr pair, negative (-) numbers will be treated as 0, and numbers >3599 will be treated as 3599
 			seas_on,
 				-tuple, containing 2 strings from the following 5: "spring", "summer", "autumn", "winter", "all"
-					NOTE: during __init__, if either value is "all", the 1st will be rewritten as "all" and the 2nd will be null-string("")
+					NOTE: during __init__(), if either value is "all", the 1st will be rewritten as "all" and the 2nd will be null-string("")
 		)'''
 		self.Tan		= PWM_Dev(0, "time", ("day", 1800), ("summer", "autumn"))	# P-0
 		self.Light		= PWM_Dev(2, "time", ("day", 1800), ("all", "")) 			# P-1
@@ -313,8 +332,123 @@ class Logger:
 		with open("/log/therm_log.txt", "a") as therm_out:
 			print(f"{time_in}: {therm_in}", file=therm_out)
 	# end of method
-# end of class
+### End of Class ###
 
-def manual():
+class TMan:
 	'''A function for accessing and testing the various system components from the command-line of an attached computer
 	<documentation of commands subsequently available after initially running the function>'''
+	def __init__(self):
+		self.ManTest = Device_Info()
+		if self.ManTest.RTCmod.datetime()[0] != 2023: self.ManTest.RTCmod.datetime((2023,1,1,7,12,0,0,0))
+		sleep(0.1)
+		init_hr = self.ManTest.RTCmod.datetime()[4]
+		self.TTemp = Temps()
+		self.TLog = Logger(self.ManTest.RTCmod.datetime())
+		self.help = f"Choose a parameter to change. If you already know what value you want to change it to, you may enter that value as well\nwith a comma separating them.\n\tExample:'>>> Pin ID, 7'\n Command Options (capitalization doesn't matter):\n\t[duty]\t[fade test]\t[frequency]\t[pin id]\t[quit]\t[sim temp]/[st]\t[sim time]/[sc]\n[d]uty\t\t- change the PWM duty-cycle (8-bit based voltage fraction) from 1-65535.\n[f]ade test\t- run a 30-second test of the PWM-fade code, to ensure it is working perfectly. System will be unresponsive until the\n\t\t\ttest is complete.\n[fr]equency\t- change the PWM frequency.\n[h]elp\t\t- re-display this menu.\n[p]in id\t\t- change the GPIO pin number (Note: use of odd-numbers *should* result in false-negatives; positive test results\n\t\t\tindicate a wiring problem).\n[q]uit\t\t- duh.\nsim temp\t- use an artificial temprature reading to check for propper device response.\nsim time\t- use an artificial seed-time to simulate activity in a different time phase (example being running 'nighttime' function\n\t\t\ttesting during daytime without changing device values or waiting for nighttime)."
+		self.TEnv = Device_Info()
+		while True: # get the pin ID from the user
+			try:
+				pinID = int(input("Pin number? "))
+			except:
+				print("Please use integers")
+			else: 
+				break
+		while True: # get the desired type
+			dev_type = input("Choose one of the following operating modes:\n1. 'heat'\n2. 'cool'\n3. 'time'").lower().strip()
+			try:
+				dev_type = int(dev_type)
+			except:
+				if dev_type not in ('heat','cool','time'): print("Invalid response. Please try again.")
+				else: break
+			else:
+				if 0 > dev_type > 3: print("Invalid response. Please try again.")
+				else: 
+					if int(dev_type) == 1: dev_type = 'heat'
+					elif int(dev_type) == 2: dev_type = 'cool'
+					else: dev_type = 'time'
+					break
+		while True: # get the starting state
+			on_off = input("Start with the device 'on' or 'off'? ").lower().strip()
+			if on_off not in ("on", "off"): print("Invalid response. Try again")
+			else: break
+		print("Setting up device")
+
+		# NOTE: need to add a block here to assign appropriate values to the _on_off tuple based on the value of on_off above
+		# 	- for "heat", if "off" use a high temp set; if "on" use a very low temp
+		# 	- for "cool", swap the high/low settings for "heat"
+		# 	- for "time", compare ManTest.RTCmod.datetime() to "on"/"off" (if it's daytime and "on", set to "day"; etc.) and use fade-value of 30 
+		if dev_type == "heat" and on_off == "off": f_on_off = (80,80)
+		elif dev_type == "heat" and on_off == "on": f_on_off = (40,40)
+		elif dev_type == "cool" and on_off == "off": f_on_off = (40,80)
+		elif dev_type == "cool" and on_off == "on": f_on_off = (80,120)
+		elif dev_type == "time" and on_off == "on":
+			if init_hr in range(6,17): f_on_off = ("day",30)
+			else: f_on_off = ("night", 30)
+		else:
+			if init_hr in range(6,17): f_on_off = ("night",30)
+			else: f_on_off = ("day", 30)
+		self.TDev = PWM_Dev(pinID, dev_type, f_on_off, ("all",""))
+	
+	def go(self):
+		print(self.help)
+		while True: # testing loop - runs till user quits
+			beaking = input("Enter your testing option: ").lower()
+			if beaking in ("quit","q"):	break
+			elif beaking in ("help","h"): print(self.help)
+			elif beaking in ("fade","f"):
+				# check for compatibility
+				if self.TDev.trigger_mode.lower() != "time": 
+					print(f"Sorry, device-type is incorrect:\nIs: '{self.TDev.trigger_mode}'; needs to be: 'time'.")
+					continue 
+				# get current duty value
+				Fade_Time = RTC()
+				Fade_Time.datetime((2023, 1, 1, 7, 6, 0, 0, 0)) # (yr, mo, date, day-o-wk, hr, min, sec, subsec)
+				# run the test itself
+				force_break = 0
+				while True:
+					time_in = Fade_Time.datetime()
+					self.TDev.time_ref(time_in, self.TLog)
+					if self.TDev.dev_on.lower() == self.TDev.dev_on: # i.e. *not* all-caps
+						break
+					sleep(0.1)
+					force_break += 1
+					if force_break == 300:
+						break
+			elif beaking in ("frequency","fr"):
+				print(f"Current device frequency: {self.TDev.pin_id.freq()} Hz")
+				while True:
+					try:
+						new_data = int(input("New device frequency: "))
+					except:
+						print("Invalid entry. Please enter an integer...")
+					else:
+						break
+				self.TDev.pin_id.freq(new_data)
+			elif beaking in ("duty","d"):
+				print(f"Current device duty: {self.TDev.pin_id.duty_u16()}:65535")
+				while True:
+					try:
+						new_data = int(input("New device duty: "))
+						if 1 > new_data > 65535: raise ValueError
+					except:
+						print("Invalid entry. Please enter an integer between 1 and 65535...")
+					else:
+						break
+				self.TDev.pin_id.duty_u16(new_data)
+			elif beaking in ("pin id","p"):
+				# create a clone of the previous TDev, but with a new pin ID
+				pass
+			elif beaking in ("sim temp","st"):
+				# artificially set a fake thermal reading and use that instead of the Pico's thermal sensor input
+				while True:
+					try:
+						fake_temp = int(input("Please enter a tempurature value: "))
+					except:
+						print("Please use only numerals (and a '.' if you want to enter a decimal)")
+					else:
+						break
+				if self.TDev.trigger_mode.lower() == "heat": self.TDev.heat_ref(fake_temp, self.TLog)
+				elif self.TDev.trigger_mode.lower() == "cool": self.TDev.cool_ref(fake_temp, self.TLog)
+			elif beaking in ("sim time","sc"):
+				# artificially set a fake clock-value for the device to test against. Doesn't modify the RTC values; merely fits the format of RTC.datetime()
+				pass
