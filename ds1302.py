@@ -15,22 +15,14 @@ DS1302_REG_RAM      = (0xC0) # value given in hex; equivalent to 192
 # NOTE: In my not-so-humble opinion, the in-file/in-line documentation in this module suuuuucks! To that end, all in-file/in-line 
 # comments and tripple-quote documentation are my own additions as I work to understand each function and how to best utilize it
 
-# NOTE: Error traceback, for some reason, will go to the lasdt good, non-blank like (this may mean it directs you to a comment-line, 
-# when the issue is the next coded line down). Not sure, exactly why that is (maybe it's a VS-Code idiosyncrocy?), but something to be 
+# NOTE: Error traceback, for some reason, will go to the last good, non-blank like (this may mean it directs you to a comment-line, 
+# when the issue is the next coded line down). Not sure exactly why that is (maybe it's a VS-Code idiosyncrocy?), but something to be 
 # aware of.
 
 class DS1302:
     '''A module to enable a microcontroller board running micropython to utilize the ds1302 chip on a 5-pin board using a trickle-
     -charged CR2032 button battery for memory permanence. The original code was pulled from [https://github.com/omarbenhamid/micropython-ds1302-rtc/tree/master]
-    and has been modified to supply documentation that is lacking in the original source, and to add 2 new functions that give 
-    location-agnostic day/night cycles as well as month-based 4-season cycles. Due to following neither time-zones, solstices, nor 
-    conventional seasonal calculations, this will not be highly accurate, but will be at least functional.
-    * Day/night cycle is based on 0600 and 1800 as the 50-50 split-point between "day" vs "night"
-    * Spring/Summer/Autumn/Winter cycle is based on:
-        * Mar, Apr, May = Spring
-        * Jun, Jul, Aug = Summer
-        * Sep, Oct, Nov = Autumn
-        * Dec, Jan, Feb = Winter
+    and has been modified to supply documentation that is lacking in the original source.
     '''
     def __init__(self, clk, dio, cs):
         '''Initialize the micro-board pin-out details and output initial signals to RTC board'''
@@ -76,12 +68,14 @@ class DS1302:
         return t                # return the value of "t" to the call-point in the program
 
     def _set_reg(self, reg, dat):
+        '''Set the given registry with new value info'''
         self.cs.value(1)
         self._write_byte(reg)
         self._write_byte(dat)
         self.cs.value(0)
 
     def _wr(self, reg, dat):
+        ''''''
         self._set_reg(DS1302_REG_WP, 0)
         self._set_reg(reg, dat)
         self._set_reg(DS1302_REG_WP, 0x80)
